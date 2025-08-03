@@ -31,9 +31,10 @@ import {
   History,
   LayoutDashboard,
   FileDown,
-  FileUp,
   Activity,
   CheckCircle,
+  Loader2,
+  Clock,
 } from "lucide-react"
 import { useAlert } from "@/components/alert-system/alert-context";
 import { createAlertHelpers } from "@/components/alert-system/alert-utils";
@@ -78,12 +79,19 @@ const notifications = [
   }
 ]
 
-// Enhanced products for search
-const demoProducts = [
-  { id: 1, name: "Wireless Keyboard", category: "Electronics", price: "$59.99", stock: 23, sku: "WK-2023", location: "Warehouse A" },
-  { id: 2, name: "Ergonomic Mouse", category: "Electronics", price: "$39.99", stock: 15, sku: "EM-2023", location: "Warehouse B" },
-  { id: 3, name: "Monitor Stand", category: "Furniture", price: "$89.99", stock: 7, sku: "MS-2023", location: "Warehouse A" },
-]
+// Enhanced products for search with more fields
+interface Product {
+  id: number;
+  name: string;
+  category: string;
+  price: string;
+  stock: number;
+  sku: string;
+  location: string;
+  description?: string;
+  supplier?: string;
+  lastUpdated?: string;
+}
 
 // Enhanced add options
 const addOptions = [
@@ -121,15 +129,57 @@ const addOptions = [
   }
 ]
 
-// Enhanced quick actions
+// Enhanced quick actions with violations and better categorization
 const quickActions = [
   {
-    name: "Low Stock",
+    name: "Critical Violations",
     icon: AlertTriangle,
-    description: "View critical items",
+    description: "High priority issues",
     color: "text-red-600",
     bgColor: "bg-red-50",
-    action: () => console.log("Showing low stock...")
+    count: 5,
+    severity: "critical",
+    action: () => console.log("Showing critical violations...")
+  },
+  {
+    name: "Stock Violations",
+    icon: Package,
+    description: "Low stock alerts",
+    color: "text-orange-600",
+    bgColor: "bg-orange-50",
+    count: 12,
+    severity: "warning",
+    action: () => console.log("Showing stock violations...")
+  },
+  {
+    name: "Quality Violations",
+    icon: CheckCircle,
+    description: "Quality control issues",
+    color: "text-yellow-600",
+    bgColor: "bg-yellow-50",
+    count: 3,
+    severity: "warning",
+    action: () => console.log("Showing quality violations...")
+  },
+  {
+    name: "Compliance Violations",
+    icon: FileDown,
+    description: "Regulatory issues",
+    color: "text-purple-600",
+    bgColor: "bg-purple-50",
+    count: 2,
+    severity: "critical",
+    action: () => console.log("Showing compliance violations...")
+  },
+  {
+    name: "System Status",
+    icon: Activity,
+    description: "System health check",
+    color: "text-blue-600",
+    bgColor: "bg-blue-50",
+    count: 0,
+    severity: "info",
+    action: () => console.log("Checking system status...")
   },
   {
     name: "Recent Activity",
@@ -137,23 +187,9 @@ const quickActions = [
     description: "View audit log",
     color: "text-gray-600",
     bgColor: "bg-gray-50",
+    count: 0,
+    severity: "info",
     action: () => console.log("Showing activity...")
-  },
-  {
-    name: "Export Data",
-    icon: FileUp,
-    description: "Export to CSV",
-    color: "text-green-600",
-    bgColor: "bg-green-50",
-    action: () => console.log("Exporting data...")
-  },
-  {
-    name: "System Status",
-    icon: Activity,
-    description: "Check system health",
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
-    action: () => console.log("Checking system status...")
   }
 ]
 
@@ -172,26 +208,121 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
   const [isQuickActionsOpen, setIsQuickActionsOpen] = React.useState(false)
   const [isProfileOpen, setIsProfileOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
-  const [searchResults, setSearchResults] = React.useState<typeof demoProducts>([])
+  const [searchResults, setSearchResults] = React.useState<Product[]>([])
   const [isSearchFocused, setIsSearchFocused] = React.useState(false)
+  const [isSearchLoading, setIsSearchLoading] = React.useState(false)
+  const [searchHistory, setSearchHistory] = React.useState<string[]>([])
+  const [selectedResultIndex, setSelectedResultIndex] = React.useState(-1)
   const { showAlert } = useAlert();
   const alert = createAlertHelpers(showAlert);
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const unreadCount = notificationsList.filter(n => !n.read).length
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query)
-    if (query.trim()) {
-      const filtered = demoProducts.filter(product =>
-        product.name.toLowerCase().includes(query.toLowerCase()) ||
-        product.sku.toLowerCase().includes(query.toLowerCase())
-      )
-      setSearchResults(filtered)
-    } else {
-      setSearchResults([])
+  // Simulated API call for search
+  const searchProducts = async (query: string): Promise<Product[]> => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Mock API response - replace with actual API call
+    const mockProducts: Product[] = [
+      { id: 1, name: "Wireless Keyboard", category: "Electronics", price: "$59.99", stock: 23, sku: "WK-2023", location: "Warehouse A", description: "Ergonomic wireless keyboard", supplier: "TechCorp", lastUpdated: "2024-01-15" },
+      { id: 2, name: "Ergonomic Mouse", category: "Electronics", price: "$39.99", stock: 15, sku: "EM-2023", location: "Warehouse B", description: "Comfortable ergonomic mouse", supplier: "TechCorp", lastUpdated: "2024-01-14" },
+      { id: 3, name: "Monitor Stand", category: "Furniture", price: "$89.99", stock: 7, sku: "MS-2023", location: "Warehouse A", description: "Adjustable monitor stand", supplier: "FurniTech", lastUpdated: "2024-01-13" },
+      { id: 4, name: "USB-C Cable", category: "Electronics", price: "$12.99", stock: 45, sku: "UC-2023", location: "Warehouse C", description: "High-speed USB-C cable", supplier: "CablePro", lastUpdated: "2024-01-12" },
+      { id: 5, name: "Desk Lamp", category: "Furniture", price: "$29.99", stock: 12, sku: "DL-2023", location: "Warehouse B", description: "LED desk lamp", supplier: "LightTech", lastUpdated: "2024-01-11" },
+    ];
+
+    return mockProducts.filter(product =>
+      product.name.toLowerCase().includes(query.toLowerCase()) ||
+      product.sku.toLowerCase().includes(query.toLowerCase()) ||
+      product.category.toLowerCase().includes(query.toLowerCase()) ||
+      product.location.toLowerCase().includes(query.toLowerCase()) ||
+      (product.description && product.description.toLowerCase().includes(query.toLowerCase()))
+    );
+  };
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    setSelectedResultIndex(-1);
+
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  }
+
+    if (query.trim()) {
+      // Add to search history
+      if (!searchHistory.includes(query)) {
+        setSearchHistory(prev => [query, ...prev.slice(0, 4)]);
+      }
+
+      // Debounce search
+      searchTimeoutRef.current = setTimeout(async () => {
+        setIsSearchLoading(true);
+        try {
+          const results = await searchProducts(query);
+          setSearchResults(results);
+        } catch  {
+          showAlert('error', 'Search Error', 'Failed to search products. Please try again.');
+          setSearchResults([]);
+        } finally {
+          setIsSearchLoading(false);
+        }
+      }, 300);
+    } else {
+      setSearchResults([]);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isSearchFocused || searchResults.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedResultIndex(prev => 
+          prev < searchResults.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedResultIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedResultIndex >= 0 && selectedResultIndex < searchResults.length) {
+          handleResultClick(searchResults[selectedResultIndex]);
+        }
+        break;
+      case 'Escape':
+        setIsSearchFocused(false);
+        setSearchResults([]);
+        setSelectedResultIndex(-1);
+        break;
+    }
+  };
+
+  const handleResultClick = (product: Product) => {
+    // Handle product selection - you can navigate to product details or perform other actions
+    showAlert('success', 'Product Selected', `Selected: ${product.name}`);
+    setSearchQuery("");
+    setSearchResults([]);
+    setIsSearchFocused(false);
+    setSelectedResultIndex(-1);
+  };
+
+  const handleHistoryClick = (query: string) => {
+    setSearchQuery(query);
+    handleSearch(query);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSearchResults([]);
+    setSelectedResultIndex(-1);
+  };
 
   const markAsRead = (id: number) => {
     setNotificationsList(prev =>
@@ -218,7 +349,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm">
+    <header className="sticky top-0 z-50 w-full bg-blue-50 border-b border-blue-200">
       <div className="flex h-16 items-center justify-between px-4 lg:px-6">
         {/* Left Side - Mobile Menu */}
         <div className="flex items-center gap-4">
@@ -226,7 +357,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="lg:hidden h-9 w-9 p-0 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="lg:hidden h-9 w-9 p-0 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
             onClick={() => setIsMobileMenuOpen?.(!isMobileMenuOpen)}
           >
             <Menu className="h-4 w-4" />
@@ -234,7 +365,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
         </div>
 
         {/* Center - Search Bar */}
-        <div className="flex-1 max-w-2xl mx-4 relative">
+        <div className="flex-1 max-w-2xl mx-2 sm:mx-4 relative">
           <div className="relative group">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
             <Input
@@ -242,6 +373,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
               placeholder="Search products, SKUs, locations..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
+              onKeyDown={handleKeyDown}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
               className="pl-10 pr-12 h-10 bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-lg text-sm transition-all duration-200"
@@ -255,7 +387,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
                   variant="ghost"
                   size="sm"
                   className="h-5 w-5 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                  onClick={() => setSearchQuery("")}
+                  onClick={clearSearch}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -264,83 +396,204 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
           </div>
 
           {/* Search Results Dropdown */}
-          {isSearchFocused && searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
-              <div className="p-2 border-b border-gray-100">
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Products ({searchResults.length})</p>
-              </div>
-              {searchResults.map((product) => (
-                <div
-                  key={product.id}
-                  className="flex items-center justify-between p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                      <Package className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{product.name}</p>
-                      <div className="flex gap-2 flex-wrap">
-                        <p className="text-xs text-gray-500">{product.sku}</p>
-                        <span className="text-xs text-gray-400">•</span>
-                        <p className="text-xs text-gray-500">{product.location}</p>
+          {isSearchFocused && (searchResults.length > 0 || isSearchLoading || (searchQuery && searchHistory.length > 0)) && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg  z-50 max-h-80 overflow-y-auto">
+              {isSearchLoading ? (
+                <div className="p-4 text-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-blue-500 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Searching...</p>
+                </div>
+              ) : searchResults.length > 0 ? (
+                <>
+                  <div className="p-2 border-b border-gray-100">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Products ({searchResults.length})</p>
+                  </div>
+                  {searchResults.map((product, index) => (
+                    <div
+                      key={product.id}
+                      className={`flex items-center justify-between p-3 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors ${
+                        index === selectedResultIndex ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'
+                      }`}
+                      onClick={() => handleResultClick(product)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                          <Package className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{product.name}</p>
+                          <div className="flex gap-2 flex-wrap">
+                            <p className="text-xs text-gray-500">{product.sku}</p>
+                            <span className="text-xs text-gray-400">•</span>
+                            <p className="text-xs text-gray-500">{product.category}</p>
+                            <span className="text-xs text-gray-400">•</span>
+                            <p className="text-xs text-gray-500">{product.location}</p>
+                          </div>
+                          {product.description && (
+                            <p className="text-xs text-gray-600 mt-1">{product.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-semibold text-gray-900">{product.price}</span>
+                        <div className="flex items-center gap-1 mt-1">
+                          <div className={`w-2 h-2 rounded-full ${product.stock > 20 ? 'bg-green-500' : product.stock > 10 ? 'bg-yellow-500' : 'bg-red-500'}`} />
+                          <span className="text-xs text-gray-500">{product.stock} in stock</span>
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </>
+              ) : searchQuery && searchHistory.length > 0 ? (
+                <>
+                  <div className="p-2 border-b border-gray-100">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Recent Searches</p>
                   </div>
-                  <div className="text-right">
-                    <span className="text-sm font-semibold text-gray-900">{product.price}</span>
-                    <div className="flex items-center gap-1 mt-1">
-                      <div className={`w-2 h-2 rounded-full ${product.stock > 20 ? 'bg-green-500' : product.stock > 10 ? 'bg-yellow-500' : 'bg-red-500'}`} />
-                      <span className="text-xs text-gray-500">{product.stock} in stock</span>
+                  {searchHistory.map((query, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
+                      onClick={() => handleHistoryClick(query)}
+                    >
+                      <Clock className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm text-gray-700">{query}</span>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  ))}
+                </>
+              ) : null}
             </div>
           )}
         </div>
 
         {/* Right Side Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:gap-4">
           {/* Quick Actions */}
           <DropdownMenu open={isQuickActionsOpen} onOpenChange={setIsQuickActionsOpen}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 w-9 p-0 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="relative h-9 px-2 sm:px-3 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
               >
-                <Zap className="h-4 w-4" />
+                <Zap className="h-4 w-4 mr-1 sm:mr-2 text-blue-600" />
+                <span className="text-sm font-medium hidden sm:inline">Quick</span>
+                {quickActions.filter(a => a.count > 0).length > 0 && (
+                  <Badge
+                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-red-500 border-2 border-white flex items-center justify-center font-bold"
+                    variant="destructive"
+                  >
+                    {quickActions.filter(a => a.count > 0).length}
+                  </Badge>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-64 mt-2 bg-white border border-gray-200 shadow-lg rounded-lg"
+              className="w-100 mt-2 bg-white border border-gray-200 rounded-xl max-h-[80vh] overflow-y-auto"
               align="end"
               sideOffset={8}
             >
-              <DropdownMenuLabel className="font-normal p-3 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-yellow-500" />
-                  <span className="text-sm font-semibold text-gray-900">Quick Actions</span>
+              <DropdownMenuLabel className="font-normal p-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-5 w-5 text-yellow-500" />
+                    <span className="text-base font-semibold text-gray-900">Quick Actions</span>
+                  </div>
+                  <Badge variant="secondary" className="text-xs">
+                    {quickActions.filter(a => a.count > 0).length} active
+                  </Badge>
                 </div>
               </DropdownMenuLabel>
-              <div className="p-2 grid grid-cols-2 gap-2">
-                {quickActions.map((action, index) => (
-                  <Button
-                    key={index}
-                    variant="ghost"
-                    className="flex flex-col items-start p-3 h-auto hover:bg-gray-50 rounded-lg transition-colors"
-                    onClick={action.action}
-                  >
-                    <div className={`p-2 ${action.bgColor} rounded-lg mb-2`}>
-                      <action.icon className={`h-4 w-4 ${action.color}`} />
-                    </div>
-                    <div className="text-left">
-                      <div className="text-sm font-medium text-gray-900">{action.name}</div>
-                      <div className="text-xs text-gray-600">{action.description}</div>
-                    </div>
-                  </Button>
-                ))}
+              
+              {/* Critical Violations Section */}
+              <div className="p-3">
+                <div className="mb-3">
+                  <h4 className="text-xs font-semibold text-red-600 uppercase tracking-wider mb-2">Critical Violations</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {quickActions.filter(action => action.severity === "critical").map((action, index) => (
+                      <Button
+                        key={index}
+                        variant="ghost"
+                        className="flex flex-col items-start p-3 h-auto hover:bg-red-50 rounded-lg transition-colors border border-red-100"
+                        onClick={action.action}
+                      >
+                        <div className="flex items-center justify-between w-full mb-2">
+                          <div className={`p-2 ${action.bgColor} rounded-lg`}>
+                            <action.icon className={`h-4 w-4 ${action.color}`} />
+                          </div>
+                          {action.count > 0 && (
+                            <Badge variant="destructive" className="text-xs font-bold">
+                              {action.count}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-left w-full">
+                          <div className="text-sm font-semibold text-gray-900">{action.name}</div>
+                          <div className="text-xs text-gray-600">{action.description}</div>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Warning Violations Section */}
+                <div className="mb-3">
+                  <h4 className="text-xs font-semibold text-orange-600 uppercase tracking-wider mb-2">Warning Violations</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {quickActions.filter(action => action.severity === "warning").map((action, index) => (
+                      <Button
+                        key={index}
+                        variant="ghost"
+                        className="flex flex-col items-start p-3 h-auto hover:bg-orange-50 rounded-lg transition-colors border border-orange-100"
+                        onClick={action.action}
+                      >
+                        <div className="flex items-center justify-between w-full mb-2">
+                          <div className={`p-2 ${action.bgColor} rounded-lg`}>
+                            <action.icon className={`h-4 w-4 ${action.color}`} />
+                          </div>
+                          {action.count > 0 && (
+                            <Badge className="text-xs font-bold bg-orange-100 text-orange-700 border-orange-200">
+                              {action.count}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-left w-full">
+                          <div className="text-sm font-semibold text-gray-900">{action.name}</div>
+                          <div className="text-xs text-gray-600">{action.description}</div>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Info Actions Section */}
+                <div>
+                  <h4 className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-2">System Actions</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {quickActions.filter(action => action.severity === "info").map((action, index) => (
+                      <Button
+                        key={index}
+                        variant="ghost"
+                        className="flex flex-col items-start p-3 h-auto hover:bg-blue-50 rounded-lg transition-colors border border-blue-100"
+                        onClick={action.action}
+                      >
+                        <div className="flex items-center justify-between w-full mb-2">
+                          <div className={`p-2 ${action.bgColor} rounded-lg`}>
+                            <action.icon className={`h-4 w-4 ${action.color}`} />
+                          </div>
+                          {action.count > 0 && (
+                            <Badge className="text-xs font-bold bg-blue-100 text-blue-700 border-blue-200">
+                              {action.count}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-left w-full">
+                          <div className="text-sm font-semibold text-gray-900">{action.name}</div>
+                          <div className="text-xs text-gray-600">{action.description}</div>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -351,42 +604,51 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
               <Button
                 variant="default"
                 size="sm"
-                className="h-9 px-3 sm:px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
+                className="h-9 px-3 sm:px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg  transition-all duration-200 "
               >
                 <Plus className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Add</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-64 mt-2 bg-white border border-gray-200 shadow-lg rounded-lg"
+              className="w-100 mt-2 bg-white border border-gray-200 rounded-xl max-h-[80vh] overflow-y-auto"
               align="end"
               sideOffset={8}
             >
-              <DropdownMenuLabel className="font-normal p-3 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <Plus className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-semibold text-gray-900">Create New</span>
+              <DropdownMenuLabel className="font-normal p-4 border-b border-gray-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-5 w-5 text-blue-600" />
+                    <span className="text-base font-semibold text-gray-900">Create New</span>
+                  </div>
+                  <Badge variant="secondary" className="text-xs">
+                    {addOptions.length} options
+                  </Badge>
                 </div>
               </DropdownMenuLabel>
-              <div className="p-2 grid grid-cols-2 gap-2">
-                {addOptions.map((option, index) => (
-                  <Button
-                    key={index}
-                    variant="ghost"
-                    className="flex flex-col items-start p-3 h-auto hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <div className={`p-2 ${option.bgColor} rounded-lg mb-2`}>
-                      <option.icon className={`h-4 w-4 ${option.color}`} />
-                    </div>
-                    <div className="text-left">
-                      <div className="text-sm font-medium text-gray-900">{option.name}</div>
-                      <div className="text-xs text-gray-600">{option.description}</div>
-                    </div>
-                    <kbd className="mt-2 inline-flex h-5 select-none items-center gap-1 rounded border bg-gray-100 px-1.5 font-mono text-xs text-gray-500">
-                      {option.shortcut}
-                    </kbd>
-                  </Button>
-                ))}
+              <div className="p-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {addOptions.map((option, index) => (
+                    <Button
+                      key={index}
+                      variant="ghost"
+                      className="flex flex-col items-start p-3 h-auto hover:bg-gray-50 rounded-lg transition-colors border border-gray-100"
+                    >
+                      <div className="flex items-center justify-between w-full mb-2">
+                        <div className={`p-2 ${option.bgColor} rounded-lg`}>
+                          <option.icon className={`h-4 w-4 ${option.color}`} />
+                        </div>
+                        <kbd className="inline-flex h-5 select-none items-center gap-1 rounded border bg-gray-100 px-1.5 font-mono text-xs text-gray-500">
+                          {option.shortcut}
+                        </kbd>
+                      </div>
+                      <div className="text-left w-full">
+                        <div className="text-sm font-semibold text-gray-900">{option.name}</div>
+                        <div className="text-xs text-gray-600">{option.description}</div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -397,9 +659,10 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="relative h-9 w-9 p-0 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="relative h-9 px-2 sm:px-3 text-blue-700 hover:bg-blue-100 rounded-lg transition-colors"
               >
-                <Bell className="h-4 w-4" />
+                <Bell className="h-4 w-4 mr-1 sm:mr-2 text-blue-600" />
+                <span className="text-sm font-medium hidden sm:inline">Notifications</span>
                 {unreadCount > 0 && (
                   <Badge
                     className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-red-500 border-2 border-white flex items-center justify-center font-bold"
@@ -411,7 +674,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-96 mt-2 bg-white border border-gray-200 shadow-lg rounded-lg max-h-[28rem] overflow-hidden"
+              className="w-100 mt-2 bg-white border border-gray-200 rounded-xl max-h-[80vh] overflow-y-auto"
               align="end"
               sideOffset={8}
             >
@@ -496,16 +759,17 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
-                className="h-9 w-9 p-0 rounded-full hover:bg-gray-100 transition-colors"
+                className="h-9 px-2 sm:px-3 rounded-lg hover:bg-blue-100 transition-colors"
               >
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-6 w-6 mr-1 sm:mr-2">
                   <AvatarImage src="/avatars/01.png" alt="@user" />
-                  <AvatarFallback className="bg-blue-600 text-white text-sm font-semibold">JD</AvatarFallback>
+                  <AvatarFallback className="bg-blue-600 text-white text-xs font-semibold">JD</AvatarFallback>
                 </Avatar>
+                <span className="text-sm font-medium text-blue-700 hidden sm:inline">Profile</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-64 mt-2 bg-white border border-gray-200 shadow-lg rounded-lg"
+              className="w-64 mt-2 bg-white border border-gray-200 rounded-lg max-h-[80vh] overflow-y-auto"
               align="end"
               sideOffset={8}
             >
