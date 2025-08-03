@@ -218,10 +218,10 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-gray-200/60 shadow-sm">
+    <header className="sticky top-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm">
       <div className="flex h-16 items-center justify-between px-4 lg:px-6">
-        {/* Left Side - Mobile Menu & Additional Controls */}
-        <div className="flex items-center gap-4 flex-1 min-w-0">
+        {/* Left Side - Mobile Menu */}
+        <div className="flex items-center gap-4">
           {/* Mobile Menu Button */}
           <Button
             variant="ghost"
@@ -231,12 +231,6 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
           >
             <Menu className="h-4 w-4" />
           </Button>
-
-         
-
-        
-
-         
         </div>
 
         {/* Center - Search Bar */}
@@ -250,17 +244,17 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
               onChange={(e) => handleSearch(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-              className="pl-10 pr-12 h-10 bg-gray-50/80 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl text-sm transition-all duration-200"
+              className="pl-10 pr-12 h-10 bg-gray-50 border-gray-200 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-lg text-sm transition-all duration-200"
             />
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex gap-1">
-              <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded-md border bg-gray-100 px-1.5 font-mono text-xs text-gray-500">
+              <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border bg-gray-100 px-1.5 font-mono text-xs text-gray-500">
                 ⌘K
               </kbd>
               {searchQuery && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-5 w-5 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                  className="h-5 w-5 p-0 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
                   onClick={() => setSearchQuery("")}
                 >
                   <X className="h-3 w-3" />
@@ -271,8 +265,8 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
 
           {/* Search Results Dropdown */}
           {isSearchFocused && searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto">
-              <div className="p-3 border-b border-gray-100">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+              <div className="p-2 border-b border-gray-100">
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Products ({searchResults.length})</p>
               </div>
               {searchResults.map((product) => (
@@ -320,7 +314,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-64 mt-2 bg-white border border-gray-200 shadow-xl rounded-xl"
+              className="w-64 mt-2 bg-white border border-gray-200 shadow-lg rounded-lg"
               align="end"
               sideOffset={8}
             >
@@ -357,14 +351,14 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
               <Button
                 variant="default"
                 size="sm"
-                className="h-9 px-3 sm:px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
+                className="h-9 px-3 sm:px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
               >
                 <Plus className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Add</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-64 mt-2 bg-white border border-gray-200 shadow-xl rounded-xl"
+              className="w-64 mt-2 bg-white border border-gray-200 shadow-lg rounded-lg"
               align="end"
               sideOffset={8}
             >
@@ -388,7 +382,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
                       <div className="text-sm font-medium text-gray-900">{option.name}</div>
                       <div className="text-xs text-gray-600">{option.description}</div>
                     </div>
-                    <kbd className="mt-2 inline-flex h-5 select-none items-center gap-1 rounded-md border bg-gray-100 px-1.5 font-mono text-xs text-gray-500">
+                    <kbd className="mt-2 inline-flex h-5 select-none items-center gap-1 rounded border bg-gray-100 px-1.5 font-mono text-xs text-gray-500">
                       {option.shortcut}
                     </kbd>
                   </Button>
@@ -408,7 +402,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
                   <Badge
-                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-red-500 border-2 border-white flex items-center justify-center font-bold animate-pulse"
+                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-red-500 border-2 border-white flex items-center justify-center font-bold"
                     variant="destructive"
                   >
                     {unreadCount > 9 ? '9+' : unreadCount}
@@ -417,7 +411,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-96 mt-2 bg-white border border-gray-200 shadow-xl rounded-xl max-h-[28rem] overflow-hidden"
+              className="w-96 mt-2 bg-white border border-gray-200 shadow-lg rounded-lg max-h-[28rem] overflow-hidden"
               align="end"
               sideOffset={8}
             >
@@ -437,7 +431,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
                       variant="ghost"
                       size="sm"
                       onClick={markAllAsRead}
-                      className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 h-auto rounded-md transition-colors"
+                      className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 h-auto rounded transition-colors"
                     >
                       Mark all read
                     </Button>
@@ -455,7 +449,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
                   {notificationsList.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-3 hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50/50' : ''}`}
+                      className={`p-3 hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-blue-50' : ''}`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={`p-2 rounded-lg ${
@@ -475,7 +469,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => markAsRead(notification.id)}
-                                className="h-6 w-6 p-0 text-gray-400 hover:text-blue-600 rounded-md transition-colors"
+                                className="h-6 w-6 p-0 text-gray-400 hover:text-blue-600 rounded transition-colors"
                               >
                                 <X className="h-3 w-3" />
                               </Button>
@@ -485,7 +479,7 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
                           <div className="flex justify-between items-center mt-2">
                             <p className="text-xs text-gray-500">{notification.time}</p>
                             {!notification.read && (
-                              <span className="inline-flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+                              <span className="inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
                             )}
                           </div>
                         </div>
@@ -504,22 +498,22 @@ export function Header({ isMobileMenuOpen, setIsMobileMenuOpen }: HeaderProps) {
                 variant="ghost"
                 className="h-9 w-9 p-0 rounded-full hover:bg-gray-100 transition-colors"
               >
-                <Avatar className="h-8 w-8 ring-2 ring-gray-200">
+                <Avatar className="h-8 w-8">
                   <AvatarImage src="/avatars/01.png" alt="@user" />
-                  <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-sm font-semibold">JD</AvatarFallback>
+                  <AvatarFallback className="bg-blue-600 text-white text-sm font-semibold">JD</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              className="w-64 mt-2 bg-white border border-gray-200 shadow-xl rounded-xl"
+              className="w-64 mt-2 bg-white border border-gray-200 shadow-lg rounded-lg"
               align="end"
               sideOffset={8}
             >
               <DropdownMenuLabel className="font-normal p-4 border-b border-gray-100">
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 ring-2 ring-gray-200">
+                  <Avatar className="h-10 w-10">
                     <AvatarImage src="/avatars/01.png" alt="@user" />
-                    <AvatarFallback className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold">JD</AvatarFallback>
+                    <AvatarFallback className="bg-blue-600 text-white font-semibold">JD</AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="text-sm font-semibold text-gray-900">John Doe</p>
